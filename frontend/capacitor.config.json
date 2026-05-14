@@ -1,0 +1,10 @@
+{
+  "appId": "com.cinemax.tv",
+  "appName": "Cinemax",
+  "webDir": "dist",
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}

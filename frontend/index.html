@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cinemax — The Digital Cinema</title>
+  <meta name="description" content="Cinemax — Stream thousands of movies in stunning 4K quality. A premium cinematic experience." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===================== SIDEBAR NAV ===================== -->
+  <nav id="sidebar" class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">
+        <span class="material-symbols-outlined">movie</span>
+      </div>
+      <span class="logo-text">Cinemax</span>
+    </div>
+
+    <div class="sidebar-nav-items">
+      <a href="#" class="nav-item active" id="nav-home" data-section="home">
+        <span class="material-symbols-outlined nav-icon" style="font-variation-settings:'FILL' 1">home</span>
+        <span class="nav-label">Home</span>
+      </a>
+      <a href="#" class="nav-item" id="nav-movies" data-section="movies">
+        <span class="material-symbols-outlined nav-icon">movie</span>
+        <span class="nav-label">Movies</span>
+      </a>
+      <a href="#" class="nav-item" id="nav-search" data-section="search">
+        <span class="material-symbols-outlined nav-icon">search</span>
+        <span class="nav-label">Search</span>
+      </a>
+      <a href="#" class="nav-item" id="nav-mylist" data-section="mylist">
+        <span class="material-symbols-outlined nav-icon">bookmark</span>
+        <span class="nav-label">My List</span>
+      </a>
+    </div>
+
+    <div class="sidebar-bottom">
+      <a href="#" class="nav-item" id="nav-sync" onclick="triggerSync(event)">
+        <span class="material-symbols-outlined nav-icon">sync</span>
+        <span class="nav-label" id="sync-label">Sync Library</span>
+      </a>
+      <a href="#" class="nav-item">
+        <span class="material-symbols-outlined nav-icon">person</span>
+        <span class="nav-label">Profile</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- ===================== MAIN CONTENT ===================== -->
+  <main id="main-content" class="main-content">
+
+    <!-- Top App Bar -->
+    <header class="topbar">
+      <div class="topbar-brand">Cinemax</div>
+      <div class="topbar-actions">
+        <div class="search-bar-wrapper">
+          <span class="material-symbols-outlined search-icon">search</span>
+          <input type="text" id="movie-search" class="search-input" placeholder="Search movies..." autocomplete="off" />
+        </div>
+        <button class="icon-btn" title="Notifications">
+          <span class="material-symbols-outlined">notifications</span>
+        </button>
+        <button class="icon-btn" title="Settings">
+          <span class="material-symbols-outlined">settings</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== HERO SECTION ===== -->
+    <section id="hero" class="hero">
+      <div class="hero-backdrop" id="hero-backdrop">
+        <div class="hero-vignette"></div>
+      </div>
+      <div class="hero-content">
+        <div class="hero-meta">
+          <span class="tag tag-primary">Featured</span>
+          <span class="hero-meta-text">• 2024</span>
+        </div>
+        <h1 id="hero-title" class="hero-title">Loading Library...</h1>
+        <p id="hero-overview" class="hero-overview">Discover thousands of movies from across the globe.</p>
+        <div class="hero-actions">
+          <button id="hero-play" class="btn btn-primary">
+            <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">play_arrow</span>
+            Watch Now
+          </button>
+          <button class="btn btn-ghost" id="hero-addlist">
+            <span class="material-symbols-outlined">add</span>
+            My List
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== GENRE FILTER BAR ===== -->
+    <div class="category-bar" id="category-bar">
+      <button class="genre-btn active" data-id="">All</button>
+      <button class="genre-btn" data-id="28">Action</button>
+      <button class="genre-btn" data-id="35">Comedy</button>
+      <button class="genre-btn" data-id="18">Drama</button>
+      <button class="genre-btn" data-id="27">Horror</button>
+      <button class="genre-btn" data-id="878">Sci-Fi</button>
+      <button class="genre-btn" data-id="53">Thriller</button>
+      <button class="genre-btn" data-id="10749">Romance</button>
+      <button class="genre-btn" data-id="16">Animation</button>
+      <button class="genre-btn" data-id="12">Adventure</button>
+    </div>
+
+    <!-- ===== MOVIE ROWS ===== -->
+    <div class="content-rows">
+
+      <!-- Latest Releases -->
+      <section class="content-section">
+        <div class="section-header">
+          <h2 class="section-title">Latest Releases</h2>
+          <a class="view-all" href="#">View All</a>
+        </div>
+        <div id="movie-grid" class="movie-row"></div>
+      </section>
+
+      <!-- Load More -->
+      <div id="load-more-container" class="load-more-container" style="display:none;">
+        <button id="load-more-btn" class="btn btn-ghost">
+          <span class="material-symbols-outlined">expand_more</span>
+          Load More
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ===================== MOVIE DETAIL MODAL ===================== -->
+  <div id="detail-modal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-detail">
+      <button class="modal-close" id="close-detail">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+      <div class="detail-backdrop" id="detail-backdrop"></div>
+      <div class="detail-vignette"></div>
+      <div class="detail-content">
+        <div class="detail-tags" id="detail-tags"></div>
+        <h1 class="detail-title" id="detail-title"></h1>
+        <div class="detail-meta" id="detail-meta"></div>
+        <p class="detail-overview" id="detail-overview"></p>
+        <div class="detail-actions">
+          <button class="btn btn-primary" id="detail-play">
+            <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">play_arrow</span>
+            Watch Now
+          </button>
+          <button class="btn btn-ghost">
+            <span class="material-symbols-outlined">add</span>
+            My List
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== PLAYER MODAL ===================== -->
+  <div id="player-modal" class="modal-overlay" aria-hidden="true">
+    <div class="player-shell">
+      <button class="modal-close player-close" id="close-player">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <iframe id="video-player" src="" allowfullscreen allow="autoplay; fullscreen" frameborder="0"></iframe>
+    </div>
+  </div>
+
+  <!-- Ambient bloom glows -->
+  <div class="bloom bloom-top-right"></div>
+  <div class="bloom bloom-bottom-left"></div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>
