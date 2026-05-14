@@ -927,3 +927,29 @@ img { display: block; max-width: 100%; }
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Server Selector */
+.server-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  background: rgba(255,255,255,0.05);
+  padding: 8px 16px;
+  border-radius: var(--border-radius-md);
+  border: 1px solid rgba(255,255,255,0.1);
+  width: fit-content;
+}
+.server-selector select {
+  background: transparent;
+  color: #fff;
+  border: none;
+  font-family: var(--font-main);
+  font-size: 14px;
+  outline: none;
+  cursor: pointer;
+}
+.server-selector select option {
+  background: #1a1a1e;
+  color: #fff;
+}

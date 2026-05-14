@@ -306,9 +306,31 @@ function closeDetailModal() {
 // ============================================================
 
 function openPlayer(movie, seasonNum = 1, episodeNum = 1) {
-    const src = movie.media_type === 'tv' 
-        ? `https://vidsrc.to/embed/tv/${movie.tmdb_id}/${seasonNum}/${episodeNum}`
-        : `https://vidsrc.to/embed/movie/${movie.tmdb_id}`;
+    const server = document.getElementById('server-select').value;
+    let src = '';
+
+    if (movie.media_type === 'tv') {
+        if (server === 'vidsrc_me') {
+            // Format from user's screenshot: https://vidsrc.me/embed/IMDB_ID/S-E/
+            const id = movie.imdb_id || movie.tmdb_id;
+            src = `https://vidsrc.me/embed/${id}/${seasonNum}-${episodeNum}/`;
+        } else if (server === 'vidsrc_xyz') {
+            src = `https://vidsrc.xyz/embed/tv?tmdb=${movie.tmdb_id}&season=${seasonNum}&episode=${episodeNum}`;
+        } else {
+            // vidsrc.to path-based format
+            src = `https://vidsrc.to/embed/tv/${movie.tmdb_id}/${seasonNum}/${episodeNum}`;
+        }
+    } else {
+        if (server === 'vidsrc_me') {
+            const id = movie.imdb_id || movie.tmdb_id;
+            src = `https://vidsrc.me/embed/${id}/`;
+        } else if (server === 'vidsrc_xyz') {
+            src = `https://vidsrc.xyz/embed/movie?tmdb=${movie.tmdb_id}`;
+        } else {
+            src = `https://vidsrc.to/embed/movie/${movie.tmdb_id}`;
+        }
+    }
+
     videoPlayer.src = src;
     playerModal.classList.add('active');
     playerModal.setAttribute('aria-hidden', 'false');
