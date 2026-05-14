@@ -40,14 +40,20 @@ app.get('/api/movies', async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     const offset = parseInt(req.query.offset) || 0;
     const genre = req.query.genre;
+    const media_type = req.query.media_type;
     
     try {
-        let sql = `SELECT * FROM movies`;
+        let sql = `SELECT * FROM movies WHERE 1=1`;
         let params = [];
         
         if (genre) {
-            sql += ` WHERE genre_ids LIKE ?`;
+            sql += ` AND genre_ids LIKE ?`;
             params.push(`%${genre}%`);
+        }
+
+        if (media_type && media_type !== 'all') {
+            sql += ` AND media_type = ?`;
+            params.push(media_type);
         }
         
         sql += ` ORDER BY (poster_path IS NOT NULL) DESC, release_date DESC LIMIT ? OFFSET ?`;

@@ -12,6 +12,7 @@ const PAGE_SIZE = 24;
 let currentOffset = 0;
 let currentGenre  = '';
 let currentQuery  = '';
+let currentMediaType = 'all';
 let movies        = [];
 let heroMovie     = null;
 
@@ -37,8 +38,8 @@ const detailPlay        = document.getElementById('detail-play');
 // DATA FETCHING — all from backend API
 // ============================================================
 
-async function fetchMovies(limit, offset, genre) {
-    const params = new URLSearchParams({ limit, offset });
+async function fetchMovies(limit, offset, genre, mediaType) {
+    const params = new URLSearchParams({ limit, offset, media_type: mediaType });
     if (genre) params.append('genre', genre);
     const res = await fetch(`${API_BASE}/api/movies?${params}`);
     if (!res.ok) throw new Error('Backend unreachable');
@@ -48,6 +49,18 @@ async function fetchMovies(limit, offset, genre) {
 async function fetchSearch(query) {
     const res = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(query)}`);
     if (!res.ok) throw new Error('Search failed');
+    return res.json();
+}
+
+async function fetchSeasons(tmdbId) {
+    const res = await fetch(`${API_BASE}/api/tmdb/tv/${tmdbId}`);
+    if (!res.ok) throw new Error('Failed to fetch seasons');
+    return res.json();
+}
+
+async function fetchEpisodes(tmdbId, seasonNum) {
+    const res = await fetch(`${API_BASE}/api/tmdb/tv/${tmdbId}/season/${seasonNum}`);
+    if (!res.ok) throw new Error('Failed to fetch episodes');
     return res.json();
 }
 
@@ -69,7 +82,7 @@ async function loadLibrary(query = '', append = false) {
         if (query) {
             newMovies = await fetchSearch(query);
         } else {
-            newMovies = await fetchMovies(PAGE_SIZE, currentOffset, currentGenre);
+            newMovies = await fetchMovies(PAGE_SIZE, currentOffset, currentGenre, currentMediaType);
         }
 
         movies = append ? [...movies, ...newMovies] : newMovies;
@@ -205,11 +218,81 @@ function openDetail(movie) {
     document.getElementById('detail-overview').textContent =
         movie.overview || 'No description available.';
 
-    detailPlay.onclick = () => openPlayer(movie);
+    const detailPlayBtn = document.getElementById('detail-play');
+    const tvContainer = document.getElementById('tv-details-container');
+    
+    if (movie.media_type === 'tv') {
+        detailPlayBtn.style.display = 'none';
+        tvContainer.style.display = 'block';
+        document.getElementById('season-selector').innerHTML = 'Loading seasons...';
+        document.getElementById('episode-list').innerHTML = '';
+        renderTVDetails(movie);
+    } else {
+        detailPlayBtn.style.display = 'inline-flex';
+        tvContainer.style.display = 'none';
+        detailPlayBtn.onclick = () => openPlayer(movie);
+    }
 
     detailModal.classList.add('active');
     detailModal.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
+}
+
+async function renderTVDetails(movie) {
+    try {
+        const tvData = await fetchSeasons(movie.tmdb_id);
+        const seasons = tvData.seasons.filter(s => s.season_number > 0);
+        
+        const seasonSelector = document.getElementById('season-selector');
+        seasonSelector.innerHTML = seasons.map((s, idx) => `
+            <button class="season-btn ${idx === 0 ? 'active' : ''}" data-season="${s.season_number}">
+                Season ${s.season_number}
+            </button>
+        `).join('');
+
+        seasonSelector.querySelectorAll('.season-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                seasonSelector.querySelectorAll('.season-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                await renderEpisodes(movie, btn.dataset.season);
+            });
+        });
+
+        if (seasons.length > 0) {
+            await renderEpisodes(movie, seasons[0].season_number);
+        }
+    } catch (e) {
+        document.getElementById('season-selector').innerHTML = 'Failed to load TV details.';
+    }
+}
+
+async function renderEpisodes(movie, seasonNum) {
+    const episodeList = document.getElementById('episode-list');
+    episodeList.innerHTML = '<div class="skeleton" style="width:260px; height:180px;"></div>'.repeat(3);
+    
+    try {
+        const seasonData = await fetchEpisodes(movie.tmdb_id, seasonNum);
+        
+        episodeList.innerHTML = seasonData.episodes.map(ep => {
+            const thumb = posterUrl(ep.still_path) || posterUrl(movie.poster_path);
+            return `
+            <div class="episode-card" data-season="${seasonNum}" data-episode="${ep.episode_number}">
+                <img src="${thumb}" alt="${escHtml(ep.name)}" loading="lazy">
+                <div class="episode-info">
+                    <div class="episode-title">${ep.episode_number}. ${escHtml(ep.name)}</div>
+                    <div class="episode-overview">${escHtml(ep.overview) || 'No overview available.'}</div>
+                </div>
+            </div>`;
+        }).join('');
+
+        episodeList.querySelectorAll('.episode-card').forEach(card => {
+            card.addEventListener('click', () => {
+                openPlayer(movie, card.dataset.season, card.dataset.episode);
+            });
+        });
+    } catch (e) {
+        episodeList.innerHTML = 'Failed to load episodes.';
+    }
 }
 
 function closeDetailModal() {
@@ -222,9 +305,9 @@ function closeDetailModal() {
 // PLAYER MODAL
 // ============================================================
 
-function openPlayer(movie) {
+function openPlayer(movie, seasonNum = 1, episodeNum = 1) {
     const src = movie.media_type === 'tv' 
-        ? `https://vidsrc.me/embed/tv?tmdb=${movie.tmdb_id}`
+        ? `https://vidsrc.me/embed/tv?tmdb=${movie.tmdb_id}&season=${seasonNum}&episode=${episodeNum}`
         : `https://vidsrc.me/embed/movie?tmdb=${movie.tmdb_id}`;
     videoPlayer.src = src;
     playerModal.classList.add('active');
@@ -285,7 +368,20 @@ document.querySelectorAll('.nav-item[data-section]').forEach(item => {
         e.preventDefault();
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         item.classList.add('active');
-        if (item.dataset.section === 'search') searchInput.focus();
+        
+        const section = item.dataset.section;
+        if (section === 'search') {
+            searchInput.focus();
+        } else if (section === 'movies') {
+            currentMediaType = 'movie';
+            loadLibrary();
+        } else if (section === 'tv') {
+            currentMediaType = 'tv';
+            loadLibrary();
+        } else if (section === 'home') {
+            currentMediaType = 'all';
+            loadLibrary();
+        }
     });
 });
 

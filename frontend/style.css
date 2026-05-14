@@ -857,3 +857,73 @@ img { display: block; max-width: 100%; }
   justify-content: space-around;
   padding: 0 var(--space-2);
 }
+
+/* ============================================================
+   TV SERIES UI (Seasons & Episodes)
+   ============================================================ */
+.season-selector {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+  scrollbar-width: none;
+}
+.season-selector::-webkit-scrollbar { display: none; }
+
+.season-btn {
+  padding: 8px 16px;
+  background: rgba(255,255,255,0.1);
+  color: var(--on-surface);
+  border-radius: var(--border-radius-full);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.season-btn:hover { background: rgba(255,255,255,0.2); }
+.season-btn.active { background: var(--gradient); color: #fff; box-shadow: 0 4px 12px rgba(147, 125, 255, 0.3); }
+
+.episode-list {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding-bottom: var(--space-3);
+}
+
+.episode-card {
+  min-width: 260px;
+  max-width: 260px;
+  background: rgba(255,255,255,0.05);
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.episode-card:hover {
+  transform: translateY(-4px);
+  background: rgba(255,255,255,0.08);
+  border-color: var(--primary);
+}
+.episode-card img {
+  width: 100%;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+}
+.episode-info {
+  padding: 12px;
+}
+.episode-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.episode-overview {
+  font-size: 12px;
+  color: var(--on-surface-variant);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

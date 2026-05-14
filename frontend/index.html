@@ -31,6 +31,10 @@
         <span class="material-symbols-outlined nav-icon">movie</span>
         <span class="nav-label">Movies</span>
       </a>
+      <a href="#" class="nav-item" id="nav-tv" data-section="tv">
+        <span class="material-symbols-outlined nav-icon">tv</span>
+        <span class="nav-label">TV Series</span>
+      </a>
       <a href="#" class="nav-item" id="nav-search" data-section="search">
         <span class="material-symbols-outlined nav-icon">search</span>
         <span class="nav-label">Search</span>
@@ -157,6 +161,12 @@
             <span class="material-symbols-outlined">add</span>
             My List
           </button>
+        </div>
+
+        <div id="tv-details-container" style="display:none; margin-top: 32px;">
+          <h3 style="font-family: var(--font-heading); font-size: 18px; margin-bottom: 16px;">Seasons</h3>
+          <div id="season-selector" class="season-selector"></div>
+          <div id="episode-list" class="episode-list" style="margin-top: 16px;"></div>
         </div>
       </div>
     </div>
