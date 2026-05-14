@@ -1,7 +1,9 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-const dbPath = path.resolve(__dirname, 'movies.sqlite');
+// In Docker, DB_PATH points to a mounted volume (/data/movies.sqlite)
+// Locally it falls back to the backend directory
+const dbPath = process.env.DB_PATH || path.resolve(__dirname, 'movies.sqlite');
 const db = new sqlite3.Database(dbPath);
 
 function initDB() {
