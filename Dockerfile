@@ -19,6 +19,9 @@ RUN npm ci --omit=dev
 # ---- Stage 3: Final Production Image ----
 FROM node:20-bookworm-slim
 
+# Install curl (required by the backend sync utility to bypass Cloudflare)
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app/backend
 
 # Copy backend node_modules from backend-builder
