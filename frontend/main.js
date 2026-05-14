@@ -307,8 +307,8 @@ function closeDetailModal() {
 
 function openPlayer(movie, seasonNum = 1, episodeNum = 1) {
     const src = movie.media_type === 'tv' 
-        ? `https://vidsrc.me/embed/tv?tmdb=${movie.tmdb_id}&season=${seasonNum}&episode=${episodeNum}`
-        : `https://vidsrc.me/embed/movie?tmdb=${movie.tmdb_id}`;
+        ? `https://vidsrc.to/embed/tv/${movie.tmdb_id}/${seasonNum}/${episodeNum}`
+        : `https://vidsrc.to/embed/movie/${movie.tmdb_id}`;
     videoPlayer.src = src;
     playerModal.classList.add('active');
     playerModal.setAttribute('aria-hidden', 'false');
