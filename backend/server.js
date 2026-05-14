@@ -76,26 +76,32 @@ app.get('/api/search', async (req, res) => {
         // Step 2: If local results are sparse, trigger JIT Sync from TMDB
         if (results.length < 3) {
             console.log(`🔍 JIT Search & Sync for: "${q}"`);
-            const searchData = await robustFetch(`https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(q)}`, {
+            const searchData = await robustFetch(`https://api.themoviedb.org/3/search/multi?query=${encodeURIComponent(q)}`, {
                 Authorization: `Bearer ${process.env.TMDB_API_KEY}`
             });
 
             if (searchData.results) {
-                for (const movie of searchData.results) {
-                    await query(`
-                        INSERT INTO movies (tmdb_id, title, poster_path, overview, release_date, vote_average, genre_ids)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                        ON CONFLICT(tmdb_id) DO UPDATE SET
-                            poster_path = COALESCE(excluded.poster_path, movies.poster_path),
-                            overview = COALESCE(excluded.overview, movies.overview),
-                            release_date = COALESCE(excluded.release_date, movies.release_date),
-                            vote_average = COALESCE(excluded.vote_average, movies.vote_average),
-                            genre_ids = COALESCE(excluded.genre_ids, movies.genre_ids)
-                    `, [
-                        movie.id, movie.title, movie.poster_path, 
-                        movie.overview, movie.release_date, movie.vote_average,
-                        JSON.stringify(movie.genre_ids || [])
-                    ]);
+                for (const item of searchData.results) {
+                    if (item.media_type === 'movie' || item.media_type === 'tv') {
+                        const title = item.title || item.name;
+                        const releaseDate = item.release_date || item.first_air_date;
+                        
+                        await query(`
+                            INSERT INTO movies (tmdb_id, title, poster_path, overview, release_date, vote_average, genre_ids, media_type)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                            ON CONFLICT(tmdb_id) DO UPDATE SET
+                                poster_path = COALESCE(excluded.poster_path, movies.poster_path),
+                                overview = COALESCE(excluded.overview, movies.overview),
+                                release_date = COALESCE(excluded.release_date, movies.release_date),
+                                vote_average = COALESCE(excluded.vote_average, movies.vote_average),
+                                genre_ids = COALESCE(excluded.genre_ids, movies.genre_ids),
+                                media_type = excluded.media_type
+                        `, [
+                            item.id, title, item.poster_path, 
+                            item.overview, releaseDate, item.vote_average,
+                            JSON.stringify(item.genre_ids || []), item.media_type
+                        ]);
+                    }
                 }
                 
                 // Re-query local to include new additions

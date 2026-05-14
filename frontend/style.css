@@ -243,7 +243,7 @@ img { display: block; max-width: 100%; }
 }
 
 .topbar {
-  position: absolute;
+  position: sticky;
   top: 0;
   left: 0;
   right: 0;
@@ -252,7 +252,7 @@ img { display: block; max-width: 100%; }
   justify-content: space-between;
   padding: var(--space-3) var(--space-6);
   z-index: 50;
-  background: linear-gradient(to bottom, rgba(18,19,23,0.9), transparent);
+  background: linear-gradient(to bottom, rgba(18,19,23,0.95), rgba(18,19,23,0.8) 70%, transparent);
   height: var(--topbar-height);
 }
 

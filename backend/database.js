@@ -22,9 +22,16 @@ function initDB() {
                     overview TEXT,
                     release_date TEXT,
                     vote_average REAL,
-                    genre_ids TEXT
+                    genre_ids TEXT,
+                    media_type TEXT DEFAULT 'movie'
                 )
-            `);
+            `, (err) => {
+                if (!err) {
+                    // Safe migration: Add media_type column to existing databases
+                    // Ignore error if column already exists
+                    db.run("ALTER TABLE movies ADD COLUMN media_type TEXT DEFAULT 'movie'", () => {});
+                }
+            });
 
             // User data table for favorites and watch status
             db.run(`

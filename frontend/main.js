@@ -5,7 +5,7 @@ const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w500';
 
 // Auto-detect: native Capacitor app uses the server LAN IP, browser uses Vite proxy
 const isNative = window.Capacitor && window.Capacitor.isNativePlatform();
-const API_BASE = isNative ? 'http://10.8.0.4:3000' : '';
+const API_BASE = isNative ? 'https://movies.caffegelatoarusha.shop' : '';
 const PAGE_SIZE = 24;
 
 // --- State ---
@@ -127,6 +127,8 @@ function renderMovies() {
         const year   = movie.release_date ? movie.release_date.split('-')[0] : '';
         const rating = movie.vote_average ? parseFloat(movie.vote_average).toFixed(1) : '';
 
+        const typeTag = movie.media_type === 'tv' ? `<span class="tag tag-primary" style="margin-left:auto; font-size:9px; padding: 2px 6px;">TV</span>` : '';
+
         return `
         <div class="movie-card" data-idx="${idx}" tabindex="0" role="button" aria-label="Watch ${escHtml(movie.title)}">
             <img class="movie-card-poster" src="${poster}" alt="${escHtml(movie.title)}" loading="lazy"
@@ -137,6 +139,7 @@ function renderMovies() {
                 <div class="movie-card-meta">
                     ${rating ? `<span class="material-symbols-outlined">star</span><span>${rating}</span>` : ''}
                     ${year ? `<span>•</span><span>${year}</span>` : ''}
+                    ${typeTag}
                 </div>
             </div>
         </div>`;
@@ -189,7 +192,7 @@ function openDetail(movie) {
 
     // Tags
     document.getElementById('detail-tags').innerHTML = `
-        <span class="tag tag-primary">HD</span>
+        <span class="tag tag-primary">${movie.media_type === 'tv' ? 'TV SERIES' : 'MOVIE'}</span>
         ${movie.quality ? `<span class="tag tag-quality">${escHtml(movie.quality)}</span>` : ''}
         ${rating ? `<span class="tag tag-quality">⭐ ${rating}</span>` : ''}
     `;
@@ -220,7 +223,9 @@ function closeDetailModal() {
 // ============================================================
 
 function openPlayer(movie) {
-    const src = `https://vidsrc.me/embed/movie?tmdb=${movie.tmdb_id}`;
+    const src = movie.media_type === 'tv' 
+        ? `https://vidsrc.me/embed/tv?tmdb=${movie.tmdb_id}`
+        : `https://vidsrc.me/embed/movie?tmdb=${movie.tmdb_id}`;
     videoPlayer.src = src;
     playerModal.classList.add('active');
     playerModal.setAttribute('aria-hidden', 'false');
