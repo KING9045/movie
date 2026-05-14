@@ -12,10 +12,13 @@ const syncVidsrc = require('./sync_utility');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const path = require('path');
+
 app.use(cors());
 app.use(express.json());
 
-// Initialize Database
+// Serve static frontend files from the 'public' directory
+app.use(express.static(path.join(__dirname, 'public')));
 initDB().catch(err => console.error('Database Init Failed:', err));
 
 // --- Cron Scheduler ---
@@ -192,6 +195,15 @@ app.post('/api/user/activity', async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
+});
+
+// 8. Catch-all for SPA Routing
+app.use((req, res, next) => {
+    // Exclude API paths
+    if (req.path.startsWith('/api/')) {
+        return res.status(404).json({ error: 'API route not found' });
+    }
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.listen(PORT, () => {
