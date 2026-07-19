@@ -1,4 +1,4 @@
-const BACKEND_URL = 'http://localhost:3000';
+const BACKEND_URL = 'https://movies.caffegelato-arusha.com';
 const TMDB_API_BASE = 'https://api.themoviedb.org/3';
 const VIDSRC_BASE = 'https://vsembed.ru/movies/latest/page-';
  

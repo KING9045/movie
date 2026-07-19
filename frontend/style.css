@@ -953,3 +953,102 @@ img { display: block; max-width: 100%; }
   background: #1a1a1e;
   color: #fff;
 }
+
+/* ============================================================
+   TV D-PAD FOCUS OVERRIDES
+   ============================================================ */
+
+/* Remove default browser outline when using TV focus */
+*:focus, *:focus-visible {
+  outline: none;
+}
+
+/* Movie Card Focus */
+.movie-card:focus-visible {
+  transform: scale(1.05);
+  border-color: var(--primary) !important;
+  box-shadow: 0 8px 32px rgba(147, 125, 255, 0.4) !important;
+  z-index: 10;
+}
+
+/* Movie Card Poster zoom on focus */
+.movie-card:focus-visible .movie-card-poster {
+  transform: scale(1.1);
+}
+
+/* Movie Card gradient bar animation on focus */
+.movie-card:focus-visible .movie-card-gradient-bar {
+  opacity: 1;
+}
+
+/* Sidebar Nav Item Focus */
+.nav-item:focus-visible {
+  background: rgba(147, 125, 255, 0.2) !important;
+  color: var(--primary) !important;
+  box-shadow: 0 0 12px rgba(201, 190, 255, 0.25);
+}
+
+/* Genre/Category Button Focus */
+.genre-btn:focus-visible {
+  background: rgba(201, 190, 255, 0.2) !important;
+  color: var(--primary) !important;
+  border-color: rgba(201, 190, 255, 0.5) !important;
+  box-shadow: 0 0 16px rgba(147, 125, 255, 0.2) !important;
+}
+
+/* Search Bar Wrapper Focus highlight */
+.search-input:focus {
+  border-color: rgba(201, 190, 255, 0.6) !important;
+  background: rgba(255,255,255,0.12) !important;
+  width: 320px;
+  box-shadow: 0 0 0 3px rgba(201, 190, 255, 0.15) !important;
+}
+
+/* Buttons (Play, Add list, close etc.) Focus */
+.btn-primary:focus-visible {
+  transform: scale(1.05);
+  box-shadow: 0 0 45px rgba(147, 125, 255, 0.6) !important;
+}
+.btn-ghost:focus-visible {
+  background: rgba(255,255,255,0.18) !important;
+  border-color: rgba(255,255,255,0.4) !important;
+  transform: scale(1.05);
+}
+.icon-btn:focus-visible {
+  color: var(--primary) !important;
+  background: rgba(255,255,255,0.12) !important;
+  transform: scale(1.1);
+}
+.modal-close:focus-visible {
+  background: rgba(255,255,255,0.25) !important;
+  border-color: rgba(255,255,255,0.4) !important;
+  transform: scale(1.1);
+}
+
+/* TV Season Selectors focus state */
+.season-btn:focus-visible {
+  background: rgba(201, 190, 255, 0.18) !important;
+  color: var(--primary) !important;
+  border: 1px solid rgba(201, 190, 255, 0.4) !important;
+}
+
+/* Episode Card focus state */
+.episode-card {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid transparent;
+  border-radius: var(--border-radius-md);
+}
+.episode-card:focus-visible {
+  transform: scale(1.03);
+  border-color: var(--primary) !important;
+  background: rgba(255,255,255,0.06);
+  box-shadow: 0 4px 20px rgba(147, 125, 255, 0.25);
+  z-index: 10;
+}
+
+/* Server Selector Select Box Focus */
+.server-selector:focus-within {
+  border-color: rgba(201, 190, 255, 0.5) !important;
+  background: rgba(255,255,255,0.1) !important;
+  box-shadow: 0 0 12px rgba(201, 190, 255, 0.2);
+}

@@ -1,11 +1,13 @@
 // main.js — Cinemax Frontend Logic
 // Uses LAN IP when running as native app, Vite proxy when in browser
 
+import { initTVNavigation } from './src/tv-navigation.js';
+
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w500';
 
 // Auto-detect: native Capacitor app uses the server LAN IP, browser uses Vite proxy
 const isNative = window.Capacitor && window.Capacitor.isNativePlatform();
-const API_BASE = isNative ? 'https://movies.caffegelatoarusha.shop' : '';
+const API_BASE = isNative ? 'https://movies.caffegelato-arusha.com' : '';
 const PAGE_SIZE = 24;
 
 // --- State ---
@@ -276,7 +278,7 @@ async function renderEpisodes(movie, seasonNum) {
         episodeList.innerHTML = seasonData.episodes.map(ep => {
             const thumb = posterUrl(ep.still_path) || posterUrl(movie.poster_path);
             return `
-            <div class="episode-card" data-season="${seasonNum}" data-episode="${ep.episode_number}">
+            <div class="episode-card" data-season="${seasonNum}" data-episode="${ep.episode_number}" tabindex="0">
                 <img src="${thumb}" alt="${escHtml(ep.name)}" loading="lazy">
                 <div class="episode-info">
                     <div class="episode-title">${ep.episode_number}. ${escHtml(ep.name)}</div>
@@ -433,4 +435,6 @@ function escHtml(str) {
 // INIT
 // ============================================================
 
-loadLibrary();
+loadLibrary().then(() => {
+    initTVNavigation();
+});
