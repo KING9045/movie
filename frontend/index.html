@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#121317" />
+  <!-- Android TV: disable text autosizing in TV WebView -->
+  <meta name="mobile-web-app-capable" content="yes" />
   <title>Cinemax — The Digital Cinema</title>
   <meta name="description" content="Cinemax — Stream thousands of movies in stunning 4K quality. A premium cinematic experience." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -94,7 +97,7 @@
             <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">play_arrow</span>
             Watch Now
           </button>
-          <button class="btn btn-ghost" id="hero-addlist">
+          <button class="btn btn-ghost" id="hero-addlist" aria-label="Add to My List">
             <span class="material-symbols-outlined">add</span>
             My List
           </button>
@@ -165,7 +168,7 @@
             <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">play_arrow</span>
             Watch Now
           </button>
-          <button class="btn btn-ghost">
+          <button class="btn btn-ghost" id="detail-mylist-btn" aria-label="Add to My List">
             <span class="material-symbols-outlined">add</span>
             My List
           </button>
@@ -183,10 +186,66 @@
   <!-- ===================== PLAYER MODAL ===================== -->
   <div id="player-modal" class="modal-overlay" aria-hidden="true">
     <div class="player-shell">
-      <button class="modal-close player-close" id="close-player">
-        <span class="material-symbols-outlined">arrow_back</span>
-      </button>
-      <iframe id="video-player" src="" allowfullscreen allow="autoplay; fullscreen" frameborder="0"></iframe>
+      <!-- Cross-origin iframe (tabindex="0" allows D-Pad remote to focus directly into iframe) -->
+      <iframe id="video-player" src="" allowfullscreen allow="autoplay; fullscreen" frameborder="0" tabindex="0" title="Movie Video Player"></iframe>
+
+      <!-- Ad Bypass / Loader Screen -->
+      <div id="player-ad-bypass" class="player-overlay-screen">
+         <div class="bypass-loader"></div>
+         <h2 class="bypass-title">Loading Stream</h2>
+         <p class="bypass-subtitle">Getting your stream ready...</p>
+         <div id="bypass-countdown" class="bypass-countdown">5</div>
+      </div>
+
+      <!-- TAP TO PLAY screen — shown after bypass -->
+      <div id="player-tap-to-play" class="player-overlay-screen tap-to-play-screen">
+         <div class="tap-to-play-inner">
+            <button id="tap-to-play-btn" class="tap-play-btn" tabindex="0" aria-label="Start playing movie">
+               <div class="tap-play-icon-ring">
+                  <span class="material-symbols-outlined tap-play-icon">play_arrow</span>
+               </div>
+            </button>
+            <p class="tap-play-label">Press <strong>OK</strong> to Start</p>
+            <p class="tap-play-hint">Focus the button above with D-Pad, then press OK / Enter on your remote</p>
+         </div>
+      </div>
+
+      <!-- TV Controls Overlay -->
+      <div id="player-controls-overlay" class="player-controls-overlay">
+         <div class="controls-top">
+            <button class="control-btn" id="player-control-back" tabindex="0">
+               <span class="material-symbols-outlined">arrow_back</span>
+               <span>Back to Details</span>
+            </button>
+            <div class="playing-title" id="player-control-title">Movie Title</div>
+         </div>
+         
+         <div class="controls-bottom">
+            <!-- Media Playback Buttons for TV Remote -->
+            <div class="media-controls-group">
+               <button class="control-btn" id="player-control-rewind" tabindex="0" title="Rewind 10s">
+                  <span class="material-symbols-outlined">replay_10</span>
+               </button>
+               <button class="control-btn" id="player-control-toggle-play" tabindex="0" title="Play/Pause">
+                  <span class="material-symbols-outlined">play_arrow</span>
+               </button>
+               <button class="control-btn" id="player-control-forward" tabindex="0" title="Forward 10s">
+                  <span class="material-symbols-outlined">forward_10</span>
+               </button>
+            </div>
+
+            <div class="server-pill-selector" id="player-server-selector">
+               <button class="server-pill-btn" data-server="vidsrc_me" tabindex="0">Server 1 (vidsrc.me)</button>
+               <button class="server-pill-btn" data-server="vidsrc_to" tabindex="0">Server 2 (vidsrc.to)</button>
+               <button class="server-pill-btn" data-server="vidsrc_xyz" tabindex="0">Server 3 (vidsrc.xyz)</button>
+            </div>
+            
+            <button class="control-btn" id="player-control-refresh" tabindex="0">
+               <span class="material-symbols-outlined">refresh</span>
+               <span>Refresh Stream</span>
+            </button>
+         </div>
+      </div>
     </div>
   </div>
 

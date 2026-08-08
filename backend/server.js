@@ -4,8 +4,8 @@ const dns = require('dns');
 dns.setDefaultResultOrder('ipv4first');
 const express = require('express');
 const cors = require('cors');
-const { initDB, query } = require('./database');
 const axios = require('axios');
+const { initDB, query } = require('./database');
 const cron = require('node-cron');
 const syncVidsrc = require('./sync_utility');
 
@@ -21,14 +21,38 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 initDB().catch(err => console.error('Database Init Failed:', err));
 
+// --- In-Memory TMDB Response Cache (TTL: 10 minutes) ---
+const tmdbCache = new Map();
+const TMDB_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+function getCached(key) {
+    const entry = tmdbCache.get(key);
+    if (!entry) return null;
+    if (Date.now() - entry.ts > TMDB_CACHE_TTL_MS) {
+        tmdbCache.delete(key);
+        return null;
+    }
+    return entry.data;
+}
+
+function setCache(key, data) {
+    tmdbCache.set(key, { ts: Date.now(), data });
+}
+
+// --- Sync Status Tracker ---
+let syncStatus = { running: false, lastRun: null, lastResult: null, totalSynced: 0 };
+
 // --- Cron Scheduler ---
 // Run every day at 00:00 (Midnight)
 cron.schedule('0 0 * * *', async () => {
     console.log('⏰ [Scheduler] Starting Daily Sync (Latest 5 Pages)...');
+    syncStatus = { running: true, lastRun: new Date().toISOString(), lastResult: null, totalSynced: 0 };
     try {
-        await syncVidsrc(5); 
+        const result = await syncVidsrc(5);
+        syncStatus = { running: false, lastRun: syncStatus.lastRun, lastResult: 'success', totalSynced: result.totalSynced };
         console.log('⏰ [Scheduler] Daily Sync Finished.');
     } catch (e) {
+        syncStatus = { running: false, lastRun: syncStatus.lastRun, lastResult: 'error', totalSynced: 0 };
         console.error('❌ [Scheduler] Sync Failed:', e.message);
     }
 });
@@ -82,11 +106,12 @@ app.get('/api/search', async (req, res) => {
         // Step 2: If local results are sparse, trigger JIT Sync from TMDB
         if (results.length < 3) {
             console.log(`🔍 JIT Search & Sync for: "${q}"`);
-            const searchData = await robustFetch(`https://api.themoviedb.org/3/search/multi?query=${encodeURIComponent(q)}`, {
-                Authorization: `Bearer ${process.env.TMDB_API_KEY}`
-            });
+            const searchData = await robustFetch(
+                `https://api.themoviedb.org/3/search/multi?query=${encodeURIComponent(q)}`,
+                { Authorization: `Bearer ${process.env.TMDB_API_KEY}` }
+            );
 
-            if (searchData.results) {
+            if (searchData && searchData.results) {
                 for (const item of searchData.results) {
                     if (item.media_type === 'movie' || item.media_type === 'tv') {
                         const title = item.title || item.name;
@@ -95,13 +120,12 @@ app.get('/api/search', async (req, res) => {
                         await query(`
                             INSERT INTO movies (tmdb_id, title, poster_path, overview, release_date, vote_average, genre_ids, media_type)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                            ON CONFLICT(tmdb_id) DO UPDATE SET
+                            ON CONFLICT(tmdb_id, media_type) DO UPDATE SET
                                 poster_path = COALESCE(excluded.poster_path, movies.poster_path),
                                 overview = COALESCE(excluded.overview, movies.overview),
                                 release_date = COALESCE(excluded.release_date, movies.release_date),
                                 vote_average = COALESCE(excluded.vote_average, movies.vote_average),
-                                genre_ids = COALESCE(excluded.genre_ids, movies.genre_ids),
-                                media_type = excluded.media_type
+                                genre_ids = COALESCE(excluded.genre_ids, movies.genre_ids)
                         `, [
                             item.id, title, item.poster_path, 
                             item.overview, releaseDate, item.vote_average,
@@ -125,37 +149,44 @@ app.get('/api/search', async (req, res) => {
     }
 });
 
-const { exec } = require('child_process');
-const util = require('util');
-const execPromise = util.promisify(exec);
-
+// --- Robust Fetch using axios (replaces unsafe curl shell exec) ---
 async function robustFetch(url, headers = {}) {
     try {
-        const headerStrings = Object.entries(headers).map(([k, v]) => `-H "${k}: ${v}"`).join(' ');
-        const { stdout } = await execPromise(`curl -s ${headerStrings} "${url}"`);
-        return JSON.parse(stdout);
+        const response = await axios.get(url, {
+            headers,
+            timeout: 15000
+        });
+        return response.data;
     } catch (e) {
-        console.error(`❌ Robust fetch failed for ${url}:`, e.message);
+        console.error(`❌ Fetch failed for ${url}:`, e.message);
         throw e;
     }
 }
 
-// 2. TMDB Proxy
+// 3. TMDB Proxy (with in-memory cache)
 app.use('/api/tmdb', async (req, res) => {
     const endpoint = req.url;
+    const cacheKey = `tmdb:${endpoint}`;
     
+    // Serve from cache if available
+    const cached = getCached(cacheKey);
+    if (cached) {
+        return res.json(cached);
+    }
+
     try {
         const data = await robustFetch(`https://api.themoviedb.org/3${endpoint}`, {
             Authorization: `Bearer ${process.env.TMDB_API_KEY}`,
             accept: 'application/json'
         });
+        setCache(cacheKey, data);
         res.json(data);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-// 3. Vidsrc Proxy (for frontend sync)
+// 4. Vidsrc Proxy (for frontend sync)
 app.get('/api/external/vidsrc/:page', async (req, res) => {
     const { page } = req.params;
     try {
@@ -168,40 +199,57 @@ app.get('/api/external/vidsrc/:page', async (req, res) => {
 
 // 5. Trigger Backend Sync (Incremental)
 app.post('/api/sync/more', async (req, res) => {
+    if (syncStatus.running) {
+        return res.json({ success: false, message: 'Sync already running.' });
+    }
     try {
+        syncStatus = { running: true, lastRun: new Date().toISOString(), lastResult: null, totalSynced: 0 };
         const result = await syncVidsrc(1);
+        syncStatus = { running: false, lastRun: syncStatus.lastRun, lastResult: 'success', totalSynced: result.totalSynced };
         res.json({ success: true, ...result });
     } catch (error) {
+        syncStatus = { running: false, lastRun: syncStatus.lastRun, lastResult: 'error', totalSynced: 0 };
         res.status(500).json({ error: error.message });
     }
 });
 
 // 6. Trigger Full Sync (All Pages)
 app.post('/api/sync/full', async (req, res) => {
+    if (syncStatus.running) {
+        return res.json({ success: false, message: 'Sync already running.' });
+    }
     console.log('🚀 Manual FULL Sync Requested...');
-    // We run this in the background since it takes time
+    syncStatus = { running: true, lastRun: new Date().toISOString(), lastResult: null, totalSynced: 0 };
+    // Run in background since it takes time
     syncVidsrc(0, true).then(result => {
         console.log('✨ Manual Full Sync Finished:', result);
+        syncStatus = { running: false, lastRun: syncStatus.lastRun, lastResult: 'success', totalSynced: result.totalSynced };
     }).catch(err => {
         console.error('❌ Manual Full Sync Failed:', err.message);
+        syncStatus = { running: false, lastRun: syncStatus.lastRun, lastResult: 'error', totalSynced: 0 };
     });
     
     res.json({ success: true, message: 'Full sync started in background.' });
 });
 
-// 7. User Activity (Watchlist/Favorites)
+// 7. Sync Status Endpoint
+app.get('/api/sync/status', (req, res) => {
+    res.json(syncStatus);
+});
+
+// 8. User Activity (Watchlist/Favorites)
 app.post('/api/user/activity', async (req, res) => {
-    const { tmdb_id, status, is_favorite } = req.body;
+    const { tmdb_id, media_type, status, is_favorite } = req.body;
     
     try {
         await query(`
-            INSERT INTO user_activity (tmdb_id, status, is_favorite, last_interaction)
-            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-            ON CONFLICT(tmdb_id) DO UPDATE SET
+            INSERT INTO user_activity (tmdb_id, media_type, status, is_favorite, last_interaction)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(tmdb_id, media_type) DO UPDATE SET
                 status = excluded.status,
                 is_favorite = excluded.is_favorite,
                 last_interaction = CURRENT_TIMESTAMP
-        `, [tmdb_id, status || 'unwatched', is_favorite ? 1 : 0]);
+        `, [tmdb_id, media_type || 'movie', status || 'unwatched', is_favorite ? 1 : 0]);
         
         res.json({ success: true });
     } catch (error) {
@@ -209,7 +257,28 @@ app.post('/api/user/activity', async (req, res) => {
     }
 });
 
-// 8. Catch-all for SPA Routing
+// 9. Get User Watchlist / Favorites
+app.get('/api/user/activity', async (req, res) => {
+    const { is_favorite, status } = req.query;
+    try {
+        let sql = `
+            SELECT m.*, ua.status, ua.is_favorite, ua.last_interaction
+            FROM movies m
+            JOIN user_activity ua ON m.tmdb_id = ua.tmdb_id AND m.media_type = ua.media_type
+            WHERE 1=1
+        `;
+        const params = [];
+        if (is_favorite === '1') { sql += ' AND ua.is_favorite = 1'; }
+        if (status) { sql += ' AND ua.status = ?'; params.push(status); }
+        sql += ' ORDER BY ua.last_interaction DESC';
+        const results = await query(sql, params);
+        res.json(results);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 10. Catch-all for SPA Routing
 app.use((req, res, next) => {
     // Exclude API paths
     if (req.path.startsWith('/api/')) {

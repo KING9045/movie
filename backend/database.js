@@ -9,10 +9,16 @@ const db = new sqlite3.Database(dbPath);
 function initDB() {
     return new Promise((resolve, reject) => {
         db.serialize(() => {
+            // Enable WAL mode for better concurrent read performance
+            db.run(`PRAGMA journal_mode=WAL`);
+
             // Movies table synced from external sources
+            // PRIMARY KEY is (tmdb_id, media_type) to avoid collision between
+            // movies and TV shows that share the same TMDB numeric ID.
             db.run(`
                 CREATE TABLE IF NOT EXISTS movies (
-                    tmdb_id INTEGER PRIMARY KEY,
+                    tmdb_id INTEGER NOT NULL,
+                    media_type TEXT NOT NULL DEFAULT 'movie',
                     imdb_id TEXT,
                     title TEXT NOT NULL,
                     quality TEXT,
@@ -23,24 +29,31 @@ function initDB() {
                     release_date TEXT,
                     vote_average REAL,
                     genre_ids TEXT,
-                    media_type TEXT DEFAULT 'movie'
+                    PRIMARY KEY (tmdb_id, media_type)
                 )
             `, (err) => {
-                if (!err) {
-                    // Safe migration: Add media_type column to existing databases
-                    // Ignore error if column already exists
-                    db.run("ALTER TABLE movies ADD COLUMN media_type TEXT DEFAULT 'movie'", () => {});
+                if (err) {
+                    console.error('❌ Error creating movies table:', err.message);
                 }
             });
 
+            // Safe migration: if old table exists with single PK, the CREATE IF NOT EXISTS
+            // will be a no-op but we handle it gracefully.
+            // New columns for existing DBs:
+            db.run("ALTER TABLE movies ADD COLUMN quality TEXT", () => {});
+            db.run("ALTER TABLE movies ADD COLUMN embed_url TEXT", () => {});
+            db.run("ALTER TABLE movies ADD COLUMN imdb_id TEXT", () => {});
+
             // User data table for favorites and watch status
+            // Also uses composite PK (tmdb_id, media_type) to mirror movies table
             db.run(`
                 CREATE TABLE IF NOT EXISTS user_activity (
-                    tmdb_id INTEGER PRIMARY KEY,
+                    tmdb_id INTEGER NOT NULL,
+                    media_type TEXT NOT NULL DEFAULT 'movie',
                     status TEXT CHECK( status IN ('watched', 'unwatched', 'watchlist') ) DEFAULT 'unwatched',
                     is_favorite BOOLEAN DEFAULT 0,
                     last_interaction TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (tmdb_id) REFERENCES movies (tmdb_id)
+                    PRIMARY KEY (tmdb_id, media_type)
                 )
             `);
 

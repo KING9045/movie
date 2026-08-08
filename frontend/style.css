@@ -121,16 +121,24 @@ img { display: block; max-width: 100%; }
   display: flex;
   flex-direction: column;
   padding: var(--space-3) 0;
-  background: rgba(31, 31, 36, 0.08);
-  backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
+  /* Solid fallback for devices without backdrop-filter (Android 7 WebView) */
+  background: rgba(18, 19, 23, 0.97);
   border-right: 1px solid rgba(255,255,255,0.05);
   z-index: 100;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 }
+/* Glassmorphism only when supported (modern Android/desktop) */
+@supports (backdrop-filter: blur(1px)) {
+  .sidebar {
+    background: rgba(31, 31, 36, 0.08);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+  }
+}
 
-.sidebar:hover {
+.sidebar:hover,
+.sidebar.tv-focused {
   width: var(--sidebar-expanded);
 }
 
@@ -169,7 +177,8 @@ img { display: block; max-width: 100%; }
   opacity: 0;
   transition: opacity 0.2s 0.1s;
 }
-.sidebar:hover .logo-text { opacity: 1; }
+.sidebar:hover .logo-text,
+.sidebar.tv-focused .logo-text { opacity: 1; }
 
 /* Nav items */
 .sidebar-nav-items {
@@ -200,7 +209,8 @@ img { display: block; max-width: 100%; }
   transition: all 0.2s;
   white-space: nowrap;
   overflow: hidden;
-  min-height: 48px;
+  /* Increased to 56px for TV remote / large touch targets */
+  min-height: 56px;
 }
 
 .nav-item:hover {
@@ -230,7 +240,8 @@ img { display: block; max-width: 100%; }
   opacity: 0;
   transition: opacity 0.15s 0.1s;
 }
-.sidebar:hover .nav-label { opacity: 1; }
+.sidebar:hover .nav-label,
+.sidebar.tv-focused .nav-label { opacity: 1; }
 
 /* ============================================================
    TOPBAR
@@ -544,14 +555,34 @@ img { display: block; max-width: 100%; }
 /* ============================================================
    MOVIE ROW / CARDS
    ============================================================ */
+/* Movie grid: flexbox-first layout (works on Android 7 WebView Chromium 51)
+   Grid is used as progressive enhancement when @supports detects it */
 .movie-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
 }
 
-@media (min-width: 1200px) {
-  .movie-row { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+.movie-row .movie-card {
+  flex: 0 0 calc(16.666% - var(--space-2));
+  min-width: 140px;
+}
+
+/* CSS Grid progressive enhancement — Chromium 57+, Android 7.1.2+ */
+@supports (display: grid) {
+  .movie-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: var(--space-2);
+  }
+  .movie-row .movie-card {
+    flex: unset;
+    min-width: unset;
+  }
+
+  @media (min-width: 1200px) {
+    .movie-row { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+  }
 }
 
 .movie-card {
@@ -635,8 +666,8 @@ img { display: block; max-width: 100%; }
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(9,10,14,0.8);
-  backdrop-filter: blur(16px);
+  /* Solid fallback */
+  background: rgba(9,10,14,0.96);
   z-index: 200;
   display: flex;
   align-items: stretch;
@@ -644,6 +675,13 @@ img { display: block; max-width: 100%; }
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s;
+}
+/* Glassmorphism only when supported */
+@supports (backdrop-filter: blur(1px)) {
+  .modal-overlay {
+    background: rgba(9,10,14,0.8);
+    backdrop-filter: blur(16px);
+  }
 }
 .modal-overlay.active {
   opacity: 1;
@@ -1051,4 +1089,281 @@ img { display: block; max-width: 100%; }
   border-color: rgba(201, 190, 255, 0.5) !important;
   background: rgba(255,255,255,0.1) !important;
   box-shadow: 0 0 12px rgba(201, 190, 255, 0.2);
+}
+
+/* ============================================================
+   TV PLAYER CONTROLS & BYPASS OVERLAY
+   ============================================================ */
+.player-overlay-screen {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 10, 14, 0.98);
+  backdrop-filter: blur(24px);
+  z-index: 400;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: #fff;
+  text-align: center;
+  transition: opacity 0.5s ease;
+}
+.player-overlay-screen.active {
+  display: flex;
+}
+
+.bypass-loader {
+  width: 56px;
+  height: 56px;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  border-top-color: var(--primary);
+  animation: spin 1s linear infinite;
+  box-shadow: 0 0 20px rgba(147, 125, 255, 0.3);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.bypass-title {
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 800;
+  background: var(--gradient-text);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.bypass-subtitle {
+  font-size: 15px;
+  color: var(--on-surface-variant);
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+.bypass-countdown {
+  font-size: 64px;
+  font-weight: 800;
+  color: var(--primary);
+  text-shadow: 0 0 30px rgba(147, 125, 255, 0.5);
+  margin-top: 10px;
+}
+
+.player-controls-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 75%, rgba(0,0,0,0.85) 100%);
+  z-index: 350;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 32px var(--space-10);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+  visibility: hidden;
+}
+
+.player-controls-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.controls-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.playing-title {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.controls-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.server-pill-selector {
+  display: flex;
+  gap: 12px;
+}
+
+.media-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.server-pill-btn {
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--border-radius-full);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.server-pill-btn:focus-visible, .server-pill-btn:hover, .server-pill-btn.active {
+  background: var(--gradient) !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 16px rgba(147, 125, 255, 0.4);
+}
+
+.control-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--border-radius-full);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--font-heading);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.control-btn:focus-visible, .control-btn:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  transform: scale(1.05);
+}
+
+.control-btn .material-symbols-outlined {
+  font-size: 20px;
+}
+
+/* ============================================================
+   TAP TO PLAY OVERLAY
+   ============================================================ */
+
+/* The tap-to-play screen sits between bypass loader and the iframe */
+.tap-to-play-screen {
+  background: rgba(10, 10, 14, 0.75);
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* Semi-transparent so user can see the movie thumbnail behind */
+@supports (backdrop-filter: blur(1px)) {
+  .tap-to-play-screen {
+    background: rgba(10, 10, 14, 0.55);
+    backdrop-filter: blur(4px);
+  }
+}
+
+.tap-to-play-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+/* The big play button - our app controls this, D-Pad focusable */
+.tap-play-btn {
+  position: relative;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 0;
+  outline: none;
+}
+
+.tap-play-icon-ring {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(147, 125, 255, 0.25);
+  border: 3px solid rgba(201, 190, 255, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  /* Subtle pulse animation to draw attention */
+  animation: tap-pulse 2s ease-in-out infinite;
+  box-shadow:
+    0 0 0 0 rgba(147, 125, 255, 0.4),
+    0 0 40px rgba(147, 125, 255, 0.2);
+}
+
+@keyframes tap-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 0 rgba(147, 125, 255, 0.5),
+      0 0 40px rgba(147, 125, 255, 0.2);
+    border-color: rgba(201, 190, 255, 0.5);
+  }
+  50% {
+    box-shadow:
+      0 0 0 20px rgba(147, 125, 255, 0),
+      0 0 60px rgba(147, 125, 255, 0.35);
+    border-color: rgba(201, 190, 255, 0.9);
+  }
+}
+
+.tap-play-icon {
+  font-size: 64px !important;
+  color: #fff;
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 48;
+  /* Shift right slightly to optically centre the play arrow */
+  margin-left: 6px;
+}
+
+/* D-Pad focus / hover state — big obvious highlight for TV */
+.tap-play-btn:focus-visible .tap-play-icon-ring,
+.tap-play-btn:hover .tap-play-icon-ring {
+  background: var(--gradient);
+  border-color: transparent;
+  transform: scale(1.12);
+  box-shadow:
+    0 0 0 6px rgba(201, 190, 255, 0.25),
+    0 0 60px rgba(147, 125, 255, 0.6);
+  animation: none; /* stop pulse when focused */
+}
+
+.tap-play-label {
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+.tap-play-label strong {
+  background: var(--gradient-text);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 30px;
+}
+
+.tap-play-hint {
+  font-size: 14px;
+  color: var(--on-surface-variant);
+  text-align: center;
+  max-width: 340px;
+  line-height: 1.5;
+  opacity: 0.7;
 }

@@ -3,9 +3,26 @@
 export function initTVNavigation() {
     console.log("📺 [TV Navigation] Spatial navigation initialized.");
 
+    // Expand sidebar when any nav item is focused (TV has no hover)
+    const sidebar = document.getElementById('sidebar');
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('focus', () => {
+            if (sidebar) sidebar.classList.add('tv-focused');
+        });
+        item.addEventListener('blur', () => {
+            // Collapse only if focus has left the sidebar entirely
+            setTimeout(() => {
+                if (sidebar && !sidebar.contains(document.activeElement)) {
+                    sidebar.classList.remove('tv-focused');
+                }
+            }, 50);
+        });
+    });
+
     // Listen for keydown events
     window.addEventListener('keydown', (e) => {
-        const keys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape'];
+        const keys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape',
+                      'MediaPlayPause', 'MediaStop', 'GoBack', 'Back'];
         if (!keys.includes(e.key)) return;
 
         const active = document.activeElement;
@@ -41,18 +58,19 @@ export function initTVNavigation() {
             return;
         }
 
-        if (e.key === 'Escape') {
-            // Close modals on Escape (TV Back Button mapped to Escape/Back)
-            const closePlayer = document.getElementById('close-player');
-            const closeDetail = document.getElementById('close-detail');
+        // --- FIXED: correct button IDs for both modals ---
+        if (e.key === 'Escape' || e.key === 'GoBack' || e.key === 'Back') {
+            // 'player-control-back' is the real ID (was incorrectly 'close-player')
             const playerModal = document.getElementById('player-modal');
             const detailModal = document.getElementById('detail-modal');
 
             if (playerModal && playerModal.classList.contains('active')) {
-                closePlayer.click();
+                const closePlayerBtn = document.getElementById('player-control-back');
+                if (closePlayerBtn) closePlayerBtn.click();
                 e.preventDefault();
             } else if (detailModal && detailModal.classList.contains('active')) {
-                closeDetail.click();
+                const closeDetailBtn = document.getElementById('close-detail');
+                if (closeDetailBtn) closeDetailBtn.click();
                 e.preventDefault();
             }
             return;
@@ -103,9 +121,8 @@ function focusDefault() {
 
     // Default priority:
     // 1. First visible item inside active modal (if a modal is open)
-    // 2. Play button or Watch Now
-    // 3. First movie card
-    // 4. First navbar item
+    // 2. First movie card
+    // 3. First navbar item
     const activeModal = document.querySelector('.modal-overlay.active');
     if (activeModal) {
         const modalCandidates = candidates.filter(el => activeModal.contains(el));
@@ -134,13 +151,8 @@ function navigate(direction, e) {
     const candidates = getFocusableElements();
     let current = document.activeElement;
 
-    console.log(`📺 [TV Navigation] Key: ${e.key}, Direction: ${direction}`);
-    console.log(`📺 [TV Navigation] Current active element:`, current);
-    console.log(`📺 [TV Navigation] Candidates count: ${candidates.length}`);
-
     // If nothing is focused, default focus first candidate
     if (!current || !candidates.includes(current)) {
-        console.log(`📺 [TV Navigation] No active element or active element not in candidates. Focusing default.`);
         focusDefault();
         e.preventDefault();
         return;
@@ -149,8 +161,6 @@ function navigate(direction, e) {
     const currentRect = current.getBoundingClientRect();
     const cx = currentRect.left + currentRect.width / 2;
     const cy = currentRect.top + currentRect.height / 2;
-
-    console.log(`📺 [TV Navigation] Current Center: (${cx}, ${cy})`, currentRect);
 
     let bestCandidate = null;
     let bestScore = Infinity;
@@ -182,8 +192,6 @@ function navigate(direction, e) {
                 break;
         }
 
-        const identifier = candidate.id || candidate.className || candidate.tagName;
-        
         if (!isCorrectDirection) {
             continue;
         }
@@ -199,7 +207,6 @@ function navigate(direction, e) {
         }
 
         const score = distance + alignmentPenalty;
-        console.log(`   Candidate: [${identifier}], Center: (${tx}, ${ty}), dx: ${dx.toFixed(1)}, dy: ${dy.toFixed(1)}, distance: ${distance.toFixed(1)}, penalty: ${alignmentPenalty.toFixed(1)}, score: ${score.toFixed(1)}`);
 
         if (score < bestScore) {
             bestScore = score;
@@ -208,7 +215,6 @@ function navigate(direction, e) {
     }
 
     if (bestCandidate) {
-        console.log(`📺 [TV Navigation] Focused best candidate:`, bestCandidate);
         bestCandidate.focus();
 
         // Custom scroll adjustments to ensure proper alignment
@@ -219,7 +225,5 @@ function navigate(direction, e) {
         });
 
         e.preventDefault();
-    } else {
-        console.log(`📺 [TV Navigation] No suitable candidate found in direction: ${direction}`);
     }
 }
