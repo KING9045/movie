@@ -237,6 +237,33 @@ app.get('/api/sync/status', (req, res) => {
     res.json(syncStatus);
 });
 
+// 8. Remote Telemetry / Live TV Log Ingestion
+const fs = require('fs');
+const logFilePath = path.join(__dirname, 'tv-remote.log');
+
+app.post('/api/log', (req, res) => {
+    const { type, message, tag, details, latency, timestamp } = req.body || {};
+    const time = timestamp ? new Date(timestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
+    
+    let prefix = '📺 [TV LOG]';
+    if (type === 'error') prefix = '🔴 [TV ERROR]';
+    else if (type === 'key') prefix = '🎮 [TV KEY]';
+    else if (type === 'click') prefix = '🖱️ [TV CLICK]';
+    else if (type === 'focus') prefix = '🎯 [TV FOCUS]';
+    else if (type === 'perf') prefix = '⚡ [TV PERF]';
+
+    const detailsStr = details ? (typeof details === 'object' ? JSON.stringify(details) : details) : '';
+    const latencyStr = latency ? ` (${latency}ms)` : '';
+    const logLine = `${time} ${prefix} [${tag || 'APP'}] ${message || ''}${latencyStr} ${detailsStr}`;
+
+    console.log(logLine);
+
+    // Append to tv-remote.log file for persistent inspection
+    fs.appendFile(logFilePath, logLine + '\n', () => {});
+
+    res.json({ ok: true });
+});
+
 // 8. User Activity (Watchlist/Favorites)
 app.post('/api/user/activity', async (req, res) => {
     const { tmdb_id, media_type, status, is_favorite } = req.body;

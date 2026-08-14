@@ -2,6 +2,7 @@
 // Uses smartFetch (CapacitorHttp on native, regular fetch on web) for CORS safety
 
 import { initTVNavigation } from './src/tv-navigation.js';
+import { logger } from './src/remote-logger.js';
 
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w500';
 
@@ -465,6 +466,10 @@ function startPlayerWithBypass() {
             src = `https://vidsrc.me/embed/${id}/${currentSeason}-${currentEpisode}/`;
         } else if (activeServer === 'vidsrc_xyz') {
             src = `https://vidsrc.xyz/embed/tv?tmdb=${currentMovie.tmdb_id}&season=${currentSeason}&episode=${currentEpisode}`;
+        } else if (activeServer === 'autoembed') {
+            src = `https://autoembed.co/tv/tmdb/${currentMovie.tmdb_id}-${currentSeason}-${currentEpisode}`;
+        } else if (activeServer === 'multiembed') {
+            src = `https://multiembed.mov/directstream.php?video_id=${currentMovie.tmdb_id}&tmdb=1&s=${currentSeason}&e=${currentEpisode}`;
         } else {
             src = `https://vidsrc.to/embed/tv/${currentMovie.tmdb_id}/${currentSeason}/${currentEpisode}`;
         }
@@ -474,6 +479,10 @@ function startPlayerWithBypass() {
             src = `https://vidsrc.me/embed/${id}/`;
         } else if (activeServer === 'vidsrc_xyz') {
             src = `https://vidsrc.xyz/embed/movie?tmdb=${currentMovie.tmdb_id}`;
+        } else if (activeServer === 'autoembed') {
+            src = `https://autoembed.co/movie/tmdb/${currentMovie.tmdb_id}`;
+        } else if (activeServer === 'multiembed') {
+            src = `https://multiembed.mov/directstream.php?video_id=${currentMovie.tmdb_id}&tmdb=1`;
         } else {
             src = `https://vidsrc.to/embed/movie/${currentMovie.tmdb_id}`;
         }

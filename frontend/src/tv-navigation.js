@@ -217,9 +217,9 @@ function navigate(direction, e) {
     if (bestCandidate) {
         bestCandidate.focus();
 
-        // Custom scroll adjustments to ensure proper alignment
+        // Custom scroll adjustments: 'auto' for instant crisp focus transitions on TV
         bestCandidate.scrollIntoView({
-            behavior: 'smooth',
+            behavior: 'auto',
             block: 'nearest',
             inline: 'nearest'
         });

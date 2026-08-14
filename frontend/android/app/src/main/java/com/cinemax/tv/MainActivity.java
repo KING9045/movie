@@ -5,13 +5,30 @@ import android.os.SystemClock;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.webkit.JavascriptInterface;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 import android.webkit.WebChromeClient;
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.BridgeWebViewClient;
+
+import java.io.ByteArrayInputStream;
+import java.util.Arrays;
+import java.util.List;
 
 public class MainActivity extends BridgeActivity {
 
     private JSInterface jsInterface = new JSInterface();
+
+    // High-frequency Ad & Popup domains to block natively
+    private static final List<String> AD_DOMAINS = Arrays.asList(
+        "popads", "popcash", "adsterra", "doubleclick", "adservice",
+        "adsystem", "google-analytics", "bet365", "histats", "clck.ru",
+        "exoclick", "juicyads", "propellerads", "yandex.ru/metrika",
+        "disqus.com", "onclickads", "vpaid", "vast", "coin-hive",
+        "monetag", "hilltopads", "galaksion", "a-ads", "clickadu",
+        "creative.ads", "ad-delivery", "adform", "trafficjunky"
+    );
 
     public class JSInterface {
         public boolean isModalActive = false;
@@ -23,7 +40,7 @@ public class MainActivity extends BridgeActivity {
 
         /**
          * Simulates a real native Android touch tap at the exact center of the WebView.
-         * This bypasses cross-origin iframe security restrictions because Chromium
+         * Bypasses cross-origin iframe security restrictions because Chromium
          * receives it as a genuine hardware touch event.
          */
         @JavascriptInterface
@@ -77,6 +94,21 @@ public class MainActivity extends BridgeActivity {
                             public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, android.os.Message resultMsg) {
                                 // Block all ad popup window requests
                                 return false;
+                            }
+                        });
+
+                        // Set custom Ad-Blocking WebViewClient
+                        webView.setWebViewClient(new BridgeWebViewClient(bridge) {
+                            @Override
+                            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                                String url = request.getUrl().toString().toLowerCase();
+                                for (String adDomain : AD_DOMAINS) {
+                                    if (url.contains(adDomain)) {
+                                        // Block ad request by returning empty 0-byte response
+                                        return new WebResourceResponse("text/plain", "UTF-8", new ByteArrayInputStream("".getBytes()));
+                                    }
+                                }
+                                return super.shouldInterceptRequest(view, request);
                             }
                         });
                     }
